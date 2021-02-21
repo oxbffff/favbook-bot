@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -39,52 +39,107 @@ func main() {
 	updates, err := bot.GetUpdatesChan(u)
 
 	for update := range updates {
-		if update.Message == nil {
-			continue
-		}
+		if update.CallbackQuery != nil {
+			splittedText := strings.Split(update.CallbackQuery.Data, "_")
+			callback := splittedText[0]
 
-		if update.Message.IsCommand() {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-			msg.ParseMode = "Markdown"
-
-			switch update.Message.Command() {
-			case "start", "help":
-				msg.Text = startAndHelpMsg
-			case "add":
-				splittedText := strings.SplitN(update.Message.Text, " ", 2)
-				if len(splittedText) == 1 {
-					msg.Text = fmt.Sprintf(errorMsg, "empty title")
-				} else {
-					bookTitle := splittedText[1]
-					err = addNewBook(update.Message.Chat.ID, bookTitle)
-					if err != nil {
-						msg.Text = fmt.Sprintf(errorMsg, "unexpected error while adding the book")
-						log.Println(err)
-					} else {
-						msg.Text = "Book added"
-					}
-				}
-			case "delete":
-				fmt.Println(update.Message.Chat.ID, update.Message.Text)
-			case "all":
-				allBooks, err := getAllBooks(update.Message.Chat.ID)
+			switch callback {
+			case "nxt", "prev":
+				offset, err := strconv.Atoi(splittedText[1])
 				if err != nil {
-					msg.Text = fmt.Sprintf(errorMsg, err.Error())
-					log.Println(err)
+					log.Printf(
+						logMsg,
+						update.Message.Chat.FirstName,
+						update.Message.Chat.ID,
+						"",
+						"next|prev",
+						err.Error(),
+					)
 				} else {
-					var booksList string
-					for i, bookInfo := range allBooks {
-						booksList += fmt.Sprintf("%d) %s - %d\n", i+1, bookInfo.Title, bookInfo.Score)
+					msgText, keyboardPage, err := updateKeyboardPage(update.CallbackQuery.Message.Chat.ID, int64(offset))
+					if err != nil {
+						log.Printf(
+							logMsg,
+							update.Message.Chat.FirstName,
+							update.Message.Chat.ID,
+							"",
+							"next|prev",
+							err.Error(),
+						)
+					} else {
+						msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "")
+						msg.Text = msgText
+						msg.ReplyMarkup = keyboardPage
+						msg.ParseMode = "Markdown"
+						bot.Send(msg)
 					}
-					msg.Text = booksList
 				}
-			case "my":
-				fmt.Println(update.Message.Chat.ID, update.Message.Text)
-			default:
-				msg.Text = unknownCommandMsg
 			}
 
-			bot.Send(msg)
+			bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, ""))
+		}
+		if update.Message != nil {
+			if update.Message.IsCommand() {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+				msg.ParseMode = "Markdown"
+
+				switch update.Message.Command() {
+				case "start", "help":
+					msg.Text = startAndHelpMsg
+				case "add":
+					err = processingAddCommmand(&msg, &update)
+					if err != nil {
+						log.Printf(
+							logMsg,
+							update.Message.Chat.FirstName,
+							update.Message.Chat.ID,
+							"/add",
+							"",
+							err.Error(),
+						)
+					}
+				case "delete":
+					err = processingDeleteCommmand(&msg, &update)
+					if err != nil {
+						log.Printf(
+							logMsg,
+							update.Message.Chat.FirstName,
+							update.Message.Chat.ID,
+							"/delete",
+							"",
+							err.Error(),
+						)
+					}
+				case "all":
+					err = processingAllCommmand(&msg, &update)
+					if err != nil {
+						log.Printf(
+							logMsg,
+							update.Message.Chat.FirstName,
+							update.Message.Chat.ID,
+							"/all",
+							"",
+							err.Error(),
+						)
+					}
+				case "my":
+					err = processingMyCommmand(&msg, &update)
+					if err != nil {
+						log.Printf(
+							logMsg,
+							update.Message.Chat.FirstName,
+							update.Message.Chat.ID,
+							"/my",
+							"",
+							err.Error(),
+						)
+					}
+				default:
+					msg.Text = unknownCommandMsg
+				}
+
+				bot.Send(msg)
+			}
 		}
 	}
 }

@@ -11,4 +11,8 @@ const (
 		"Additional features in development"
 	unknownCommandMsg = "Unknow command. Use `/start` or `/help` for more info"
 	errorMsg   = "An error occurred: %s"
+
+	logMsg = "Name: %s\nChatID: %d\nCommand: %s\nCallback: %s\nError description: %s\n"
+
+	bookDescriptionMsg = "Book title: **%s**\nScore: **%d**"
 )
