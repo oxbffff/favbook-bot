@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
@@ -43,12 +45,45 @@ func main() {
 
 		if update.Message.IsCommand() {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+			msg.ParseMode = "Markdown"
+
 			switch update.Message.Command() {
-			case "help", "start":
+			case "start", "help":
 				msg.Text = startAndHelpMsg
+			case "add":
+				splittedText := strings.SplitN(update.Message.Text, " ", 2)
+				if len(splittedText) == 1 {
+					msg.Text = fmt.Sprintf(errorMsg, "empty title")
+				} else {
+					bookTitle := splittedText[1]
+					err = addNewBook(update.Message.Chat.ID, bookTitle)
+					if err != nil {
+						msg.Text = fmt.Sprintf(errorMsg, "unexpected error while adding the book")
+						log.Println(err)
+					} else {
+						msg.Text = "Book added"
+					}
+				}
+			case "delete":
+				fmt.Println(update.Message.Chat.ID, update.Message.Text)
+			case "all":
+				allBooks, err := getAllBooks(update.Message.Chat.ID)
+				if err != nil {
+					msg.Text = fmt.Sprintf(errorMsg, err.Error())
+					log.Println(err)
+				} else {
+					var booksList string
+					for i, bookInfo := range allBooks {
+						booksList += fmt.Sprintf("%d) %s - %d\n", i+1, bookInfo.Title, bookInfo.Score)
+					}
+					msg.Text = booksList
+				}
+			case "my":
+				fmt.Println(update.Message.Chat.ID, update.Message.Text)
 			default:
-				msg.Text = "Unknow command"
+				msg.Text = unknownCommandMsg
 			}
+
 			bot.Send(msg)
 		}
 	}
