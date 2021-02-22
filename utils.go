@@ -3,12 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -42,7 +39,9 @@ func getAllBooks(chatID int64) ([]BookInfo, error) {
 	defer client.Disconnect(context.TODO())
 	collection := client.Database(os.Getenv("DB")).Collection(os.Getenv("BOOKS_COLLECTION"))
 
-	cur, err := collection.Find(context.TODO(), filter)
+	opts := options.Find()
+	opts.SetSort(bson.D{{"score", -1}})
+	cur, err := collection.Find(context.TODO(), filter, opts)
 	if err != nil {
 		return allBooks, err
 	}
@@ -96,37 +95,31 @@ func getTitle(text string) (string, error) {
 	return bookTitle, nil
 }
 
-func updateKeyboardPage(chatID int64, offset int64) (string, *tgbotapi.InlineKeyboardMarkup, error) {
+func updateBookScore(chatID int64, offset int64, score int) error {
 	client, err := getMongoClient()
 	if err != nil {
-		return "", nil, err
+		return err
 	}
 	defer client.Disconnect(context.TODO())
 	collection := client.Database(os.Getenv("DB")).Collection(os.Getenv("BOOKS_COLLECTION"))
 
-	filter := bson.D{{"by_chat_id", chatID}}
+	findFilter := bson.D{{"by_chat_id", chatID}}
 	opts := options.FindOneOptions{
 		Skip: &offset,
 	}
-	result := collection.FindOne(context.TODO(), filter, &opts)
-
+	findResult := collection.FindOne(context.TODO(), findFilter, &opts)
+	if err = findResult.Err(); err != nil {
+		return err
+	}
 	bookInfo := BookInfo{}
-	result.Decode(&bookInfo)
+	findResult.Decode(&bookInfo)
 
-	msgText := fmt.Sprintf(bookDescriptionMsg, bookInfo.Title, bookInfo.Score)
-	keyboardPage := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("+", "inc_"+bookInfo.ID.String()),
-			tgbotapi.NewInlineKeyboardButtonData("-", "dec_"+bookInfo.ID.String()),
-		),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("<", "prev_"+strconv.FormatInt(offset-1, 10)),
-			tgbotapi.NewInlineKeyboardButtonData(">", "nxt_"+strconv.FormatInt(offset+1, 10)),
-		),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Delete", "del_"+bookInfo.ID.String()),
-		),
-	)
+	updateFilter := bson.D{{"_id", bookInfo.ID}}
+	update := bson.D{{"$set", bson.D{{"score", score}}}}
+	_, err = collection.UpdateOne(context.TODO(), updateFilter, update)
+	if err != nil {
+		return errors.New("cannot update score")
+	}
 
-	return msgText, &keyboardPage, nil
+	return nil
 }

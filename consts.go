@@ -7,10 +7,10 @@ const (
 		"/add `title` where title is the title of the book \n" +
 		"/delete `title` where title is the title of the book \n" +
 		"/all - bot sends you a text message with all your books and their score\n" +
-		"/my - bot sends you a inline keyboard to manage your saved books\n" +
+		"/score `book_number_in_list` `score` - book rating update\n" +
 		"Additional features in development"
 	unknownCommandMsg = "Unknow command. Use `/start` or `/help` for more info"
-	errorMsg   = "An error occurred: %s"
+	errorMsg          = "An error occurred: %s"
 
 	logMsg = "Name: %s\nChatID: %d\nCommand: %s\nCallback: %s\nError description: %s\n"
 

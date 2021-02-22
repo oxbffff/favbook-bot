@@ -1,9 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func processingAllCommmand(msg *tgbotapi.MessageConfig, update *tgbotapi.Update) error {
@@ -57,20 +61,38 @@ func processingDeleteCommmand(msg *tgbotapi.MessageConfig, update *tgbotapi.Upda
 	return nil
 }
 
-func processingMyCommmand(msg *tgbotapi.MessageConfig, update *tgbotapi.Update) error {
-	allBooks, err := getAllBooks(update.Message.Chat.ID)
-	if err != nil {
+func processingScoreCommmand(msg *tgbotapi.MessageConfig, update *tgbotapi.Update) error {
+	splittedText := strings.Split(update.Message.Text, " ")
+	fmt.Println(splittedText)
+	if len(splittedText) != 3 {
+		err := errors.New("wrong command form")
 		msg.Text = fmt.Sprintf(errorMsg, err.Error())
 		return err
 	}
-	fmt.Println(allBooks)
-	msgText, keyboardPage, err := updateKeyboardPage(update.Message.Chat.ID, 0)
-	if err != nil {
-		msg.Text = fmt.Sprintf(errorMsg, err.Error())
-		return err
-	}
-	msg.Text = msgText
-	msg.ReplyMarkup = keyboardPage
 
-	return nil
+	bookNumber, err := strconv.Atoi(splittedText[1])
+	if err != nil || bookNumber <= 0 {
+		err := errors.New("second argument is wrong")
+		msg.Text = fmt.Sprintf(errorMsg, err.Error())
+		return err
+	}
+	score, err := strconv.Atoi(splittedText[2])
+	if err != nil || score < 0 {
+		err := errors.New("third argument is wrong")
+		msg.Text = fmt.Sprintf(errorMsg, err.Error())
+		return err
+	}
+
+	err = updateBookScore(update.Message.Chat.ID, int64(bookNumber)-1, score)
+	switch err {
+	case nil:
+		msg.Text = "Info was updated"
+		return nil
+	case mongo.ErrNoDocuments:
+		msg.Text = fmt.Sprintf(errorMsg, "no matches found for this index")
+		return err
+	default:
+		msg.Text = fmt.Sprintf(errorMsg, "unexpected error")
+		return err
+	}
 }

@@ -3,8 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"strconv"
-	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
@@ -39,45 +37,6 @@ func main() {
 	updates, err := bot.GetUpdatesChan(u)
 
 	for update := range updates {
-		if update.CallbackQuery != nil {
-			splittedText := strings.Split(update.CallbackQuery.Data, "_")
-			callback := splittedText[0]
-
-			switch callback {
-			case "nxt", "prev":
-				offset, err := strconv.Atoi(splittedText[1])
-				if err != nil {
-					log.Printf(
-						logMsg,
-						update.Message.Chat.FirstName,
-						update.Message.Chat.ID,
-						"",
-						"next|prev",
-						err.Error(),
-					)
-				} else {
-					msgText, keyboardPage, err := updateKeyboardPage(update.CallbackQuery.Message.Chat.ID, int64(offset))
-					if err != nil {
-						log.Printf(
-							logMsg,
-							update.Message.Chat.FirstName,
-							update.Message.Chat.ID,
-							"",
-							"next|prev",
-							err.Error(),
-						)
-					} else {
-						msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "")
-						msg.Text = msgText
-						msg.ReplyMarkup = keyboardPage
-						msg.ParseMode = "Markdown"
-						bot.Send(msg)
-					}
-				}
-			}
-
-			bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, ""))
-		}
 		if update.Message != nil {
 			if update.Message.IsCommand() {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
@@ -122,14 +81,14 @@ func main() {
 							err.Error(),
 						)
 					}
-				case "my":
-					err = processingMyCommmand(&msg, &update)
+				case "score":
+					err = processingScoreCommmand(&msg, &update)
 					if err != nil {
 						log.Printf(
 							logMsg,
 							update.Message.Chat.FirstName,
 							update.Message.Chat.ID,
-							"/my",
+							"/score",
 							"",
 							err.Error(),
 						)
