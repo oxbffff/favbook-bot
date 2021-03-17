@@ -46,7 +46,7 @@ func main() {
 				case "start", "help":
 					msg.Text = startAndHelpMsg
 				case "add":
-					err = processingAddCommmand(&msg, &update)
+					err = processAddCommand(&msg, &update)
 					if err != nil {
 						log.Printf(
 							logMsg,
@@ -58,7 +58,7 @@ func main() {
 						)
 					}
 				case "delete":
-					err = processingDeleteCommmand(&msg, &update)
+					err = processDeleteCommand(&msg, &update)
 					if err != nil {
 						log.Printf(
 							logMsg,
@@ -70,7 +70,7 @@ func main() {
 						)
 					}
 				case "all":
-					err = processingAllCommmand(&msg, &update)
+					err = processAllCommand(&msg, &update)
 					if err != nil {
 						log.Printf(
 							logMsg,
@@ -82,7 +82,7 @@ func main() {
 						)
 					}
 				case "score":
-					err = processingScoreCommmand(&msg, &update)
+					err = processScoreCommand(&msg, &update)
 					if err != nil {
 						log.Printf(
 							logMsg,
@@ -97,7 +97,17 @@ func main() {
 					msg.Text = unknownCommandMsg
 				}
 
-				bot.Send(msg)
+				_, err = bot.Send(msg)
+				if err != nil {
+					log.Printf(
+						logMsg,
+						update.Message.Chat.FirstName,
+						update.Message.Chat.ID,
+						"",
+						"",
+						err.Error(),
+					)
+				}
 			}
 		}
 	}

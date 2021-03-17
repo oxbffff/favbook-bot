@@ -13,6 +13,4 @@ const (
 	errorMsg          = "An error occurred: %s"
 
 	logMsg = "Name: %s\nChatID: %d\nCommand: %s\nCallback: %s\nError description: %s\n"
-
-	bookDescriptionMsg = "Book title: **%s**\nScore: **%d**"
 )
