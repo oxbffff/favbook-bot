@@ -63,7 +63,7 @@ func processDeleteCommand(msg *tgbotapi.MessageConfig, update *tgbotapi.Update) 
 
 func processScoreCommand(msg *tgbotapi.MessageConfig, update *tgbotapi.Update) error {
 	splittedText := strings.Split(update.Message.Text, " ")
-	fmt.Println(splittedText)
+
 	if len(splittedText) != 3 {
 		err := errors.New("wrong command form")
 		msg.Text = fmt.Sprintf(errorMsg, err.Error())
@@ -72,13 +72,13 @@ func processScoreCommand(msg *tgbotapi.MessageConfig, update *tgbotapi.Update) e
 
 	bookNumber, err := strconv.Atoi(splittedText[1])
 	if err != nil || bookNumber <= 0 {
-		err := errors.New("second argument is wrong")
+		err = errors.New("second argument is wrong")
 		msg.Text = fmt.Sprintf(errorMsg, err.Error())
 		return err
 	}
 	score, err := strconv.Atoi(splittedText[2])
 	if err != nil || score < 0 {
-		err := errors.New("third argument is wrong")
+		err = errors.New("third argument is wrong")
 		msg.Text = fmt.Sprintf(errorMsg, err.Error())
 		return err
 	}
